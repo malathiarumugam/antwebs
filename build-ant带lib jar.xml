@@ -1,0 +1,122 @@
+<project default="jar" basedir=".">
+	<property name="lib.dir" value="${basedir}/lib" />
+	<property name="src.dir" value="${basedir}/src" />
+	<property name="classes.dir" value="${basedir}/bin" />
+
+	<property name="output.dir" value="${basedir}/out" />
+	<property name="output.dir.bin" value="${basedir}/out/bin" />
+	<property name="jarname" value="JTTerminalAccess.jar" />
+	<property name="mainclass" value="com.lc.ta.JTTARun" />
+
+
+	<property name="scp.username" value="root" />
+	<property name="scp.host" value="10.10.10.188" />
+	<property name="scp.path" value="/home/JTTerminalAccess" />
+	<property name="scp.passwd" value="123qwe" />
+
+	<!-- 第三方jar包的路径 -->
+	<path id="lib-classpath">
+		<fileset dir="${lib.dir}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="clean">
+		<delete dir="${classes.dir}" />
+		<delete dir="${output.dir}" />
+	</target>
+
+	<!-- 1. 初始化工作，如创建目录等 -->
+	<target name="init" depends="clean">
+		<mkdir dir="${classes.dir}" />
+		<mkdir dir="${output.dir}" />
+		<mkdir dir="${output.dir.bin}" />
+	</target>
+
+	<!-- 2. 编译 -->
+	<target name="compile" depends="init">
+		<javac srcdir="${src.dir}" destdir="${classes.dir}">
+			<compilerarg line="-encoding UTF-8" />
+			<classpath refid="lib-classpath" />
+		</javac>
+		<copy todir="${output.dir.bin}">
+			<fileset dir="${src.dir}">
+				<include name="*.xml" />
+				<include name="*.properties" />
+				<include name="*.policy" />
+			</fileset>
+		</copy>
+
+		<copy todir="${classes.dir}">
+			<fileset dir="${src.dir}">
+				<include name="**/*.xml" />
+				<include name="**/*.properties" />
+				<include name="**/*.policy" />
+			</fileset>
+		</copy>
+	</target>
+
+	<!-- 3. 打包jar文件 -->
+	<target name="jar" depends="">
+		<copy todir="${output.dir}/lib">
+			<fileset dir="${lib.dir}" />
+		</copy>
+		
+		<copy todir="${output.dir.bin}">
+					<fileset dir="${src.dir}">
+						<include name="*.xml" />
+						<include name="*.properties" />
+						<include name="*.policy" />
+					</fileset>
+				</copy>
+		
+		<!--	<copy todir="${classes.dir}">
+			<fileset dir="${src.dir}">
+				<include name="**/*.xml" />
+				<include name="**/*.properties" />
+				<include name="**/*.policy" />
+			</fileset>
+		</copy>
+-->
+		<!--Create a property containing all .jar files,  
+            prefix lib/, and seperated with a space-->
+		<pathconvert property="mf.classpath" pathsep=" ">
+			<mapper>
+				<chainedmapper>
+					<!-- jar包文件只留文件名，去掉目录信息 -->
+					<flattenmapper />
+					<!-- add lib/ prefix -->
+					<globmapper from="*" to="lib/*" />
+				</chainedmapper>
+			</mapper>
+			<path refid="lib-classpath" />
+		</pathconvert>
+
+		<!-- jar文件的输出路径 -->
+		<jar destfile="${output.dir}/${jarname}" basedir="${classes.dir}">
+			<manifest>
+				<attribute name="Main-class" value="${mainclass}" />
+				<attribute name="Class-Path" value="${mf.classpath}" />
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="deljar" depends="" description="删除JTTerminalAccess.jar">
+		<sshexec host="${scp.host}" username="${scp.username}" password="${scp.passwd}" command="rm -rf /home/JTTerminalAccess/JTTerminalAccess.jar;ls" port="22" trust="true" verbose="false" />
+	</target>
+
+	<target name="publish.to.remote">
+		<scp file="${output.dir}/${jarname}" todir="${scp.username}:${scp.passwd}@${scp.host}:${scp.path}" port="22" trust="true" verbose="true">
+		</scp>
+		<!--	<sshexec host="${scp.host}" username="${scp.username}" password="${scp.passwd}" command="cd /home/DataAccess/DataAccess.jar;java -jar DataAccess.jar;" port="22" trust="true" verbose="false" />-->
+	</target>
+
+	<target name="republish" depends="deljar">
+		<scp file="${output.dir}/${jarname}" todir="${scp.username}:${scp.passwd}@${scp.host}:${scp.path}" port="22" trust="true" verbose="true">
+		</scp>
+		<!--	<sshexec host="${scp.host}" username="${scp.username}" password="${scp.passwd}" command="cd /home/DataAccess/DataAccess.jar;java -jar DataAccess.jar;" port="22" trust="true" verbose="false" /> -->
+	</target>
+
+
+
+</project>
